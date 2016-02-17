@@ -46,6 +46,7 @@ typedef struct Packet{
 */
 int global_port_send = 0;
 int global_port_recv = 0;
+int packetType;
 struct sockaddr_in server_add;
 
 /*
@@ -61,6 +62,9 @@ int set_server(const char* host, int port){
   server_add.sin_family = htons(AF_INET);
   server_add.sin_port = htons(port);
   server_add.sin_addr.s_addr = inet_addr(host);
+}
+void set_packetType(int type){
+  packetType = type;
 }
 /* 
    Send function to send data to tcpd (client for lab3)
@@ -79,16 +83,12 @@ int SEND(int sock, const void *buf, size_t len, int flags){
   //repacking buffer in order to conform to global application protocol
   Packet toTcpd;
   tcp tcpHeader;
-  toTcpd.packetType = (char)1;
+  toTcpd.packetType = (char)packetType;
   toTcpd.header = server_add;
   toTcpd.tcpHeader = tcpHeader; // empty tcpHeader
   memcpy(toTcpd.body, body, len);
-  int sizeOfPacket =  sizeof(toTcpd.packetType) + 
-                      sizeof(toTcpd.header) + 
-                      sizeof(toTcpd.tcpHeader) +
-                      len;
-
-	if(sendto(sock, &toTcpd, sizeOfPacket, flags, (struct sockaddr *)&tcpd, sizeof(tcpd)) < 0) {
+  
+	if(sendto(sock, &toTcpd, sizeof(toTcpd), flags, (struct sockaddr *)&tcpd, sizeof(tcpd)) < 0) {
         perror("Error sending datagram message");
         exit(1);
     }
@@ -112,7 +112,9 @@ int RECV(int s, void *buf, size_t len, int flags){
       perror("Error sending datagram message");
       exit(1);
   }
+  int i;
   memcpy(buf, fromTcpd.body, len);
+  return len;
 }
 
 /* 

@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include "lib.h"
 
-#define MSS 1000
 #define MAX_BUF_SIZE 10000
 
 main(int argc, char const *argv[])
@@ -21,10 +20,13 @@ main(int argc, char const *argv[])
 	char oneByte;									//Packet format accepted by troll
 	Packet packet;
 	char buffer[MAX_BUF_SIZE];
-	int sock, troll_sock;                               //Initial socket descriptors
-	struct sockaddr_in troll, my_addr;					//Structures for server and tcpd socket name setup
-	int i;
+	int sock, troll_sock, server_sock;                               //Initial socket descriptors
+	struct sockaddr_in troll, my_addr;
+	int dummy;
+	struct sockaddr_in server_addr;					//Structures for server and tcpd socket name setup
+	int i, s;
 	int rec;
+	char port[4];
     //If there are more or less than 3 arguments show error
     //First argument: exec file         Second argument: local tcpd port number
     //Third argument: local troll port number 
@@ -45,6 +47,8 @@ main(int argc, char const *argv[])
     //Copying socket to send to troll
     troll_sock = sock;
 
+    server_sock = sock;
+
     //Constructing socket name for receiving
 	my_addr.sin_family = AF_INET;
 	my_addr.sin_addr.s_addr = INADDR_ANY;			//Listen to any IP address
@@ -54,6 +58,12 @@ main(int argc, char const *argv[])
   	troll.sin_family = AF_INET;
   	troll.sin_port = htons(atoi(argv[2]));
   	troll.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+  	//Constructing socket name for sending to ftps
+  	memset(&server_addr, 0, sizeof(server_addr));
+
+		
+	printf("%d\n", server_addr.sin_family);
 
   	//Binding socket name to socket
 	printf("Binding socket to socket name...\n");
@@ -83,28 +93,51 @@ main(int argc, char const *argv[])
 			case 1:
 				//ftpc send us a message
 				
-				
 				rec -= ( sizeof(packet.packetType) + sizeof(packet.header) + sizeof(packet.tcpHeader));
 				printf("Received data, adding data to index --> %d\n",rec);
-				for (i = 0; i < rec; ++i)
-				{
-					printf("%c", packet.body[i]);
-					fflush(stdout);
-				}
 				
 				//forwarding the message to troll
-				int s = sendto(troll_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&troll, sizeof(troll));
+				packet.packetType = (char)3;
+				s = sendto(troll_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&troll, sizeof(troll));
 				if (s < 0)
 		        {
 		            perror("Error sending datagram");
 		            exit(1);
 		        }
 				break;
-		}
-		
-		
+			case 2:
+				//ftps send a message
+				memcpy(port,packet.body,1000);
 
-		
+				//Setting port number in struct
+				server_addr.sin_port = htons(atoi(port));
+				printf("%d\n", atoi(port));
+				printf("New server connected at port: %s\n", port);
+
+				printf("Sending all packets to the server...\n");
+
+				//Counter to count number of datagrams forwarded
+				int count = 0;
+				break;
+			
+			case 3:
+				//receiving from troll to send to ftps
+				//Receiving from troll
+
+				////Sending to ftps
+				server_addr.sin_family = AF_INET;
+				server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");	
+				printf("%d\n", server_addr.sin_family);
+				s = sendto(server_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
+
+		        if (s < 0)
+		        {
+		            perror("Error sending datagram");
+		            exit(1);
+		        }
+
+		        printf("Received and sent --> %d\n",count);
+			}
 
         
         //Incrementing counter

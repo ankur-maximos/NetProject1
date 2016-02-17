@@ -53,6 +53,7 @@ main(int argc, char const *argv[])
 
     //setting server address
     set_server(argv[1], atoi(argv[2]));
+    set_packetType(1);
     choose_port(atoi(argv[4]), atoi(argv[2]));
     
 

@@ -45,6 +45,7 @@ main(int argc, char const *argv[])
 
     //Constructing socket name of the TCPD to send to
     choose_port(atoi(argv[2]), atoi(argv[1]));
+    set_packetType(2);
     
 
     //Binding socket name to socket

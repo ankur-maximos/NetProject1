@@ -1,19 +1,22 @@
-#include<stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // Timer node structure
 struct node {
 	int key;
 	double timeval;
 	struct node *next;
-}
+};
+
+typedef struct node Node;
 
 // search for node already present returns true if present else false
-bool searchNode (struct node **head, int key) {
-	struct node *temp = *head;
-	bool flag = false;
+int searchNode (Node **head, int key) {
+	Node *temp = *head;
+	int flag = 0;
 	while(temp) {
 		if(temp->key == key) {
-			flag = true;
+			flag = 1;
 			break;
 		}		
 	}
@@ -21,53 +24,55 @@ bool searchNode (struct node **head, int key) {
 }
 
 // update list
-void updateList(struct node *temp, int val,bool flag) {
-	while(temp && flag) {
-		temp->timeval -= val;
+void updateList(Node *temp, double val,int flag) {
+	while(temp && flag==1) {
+		if(temp->timeval >= val)
+			temp->timeval -= val;
+		else break;
+		temp = temp->next;
 	}
-	while(temp && !flag) {
+	while(temp && flag==0) {
 		temp->timeval += val;
+		temp = temp->next;
 	}
 }
 
 // insert into node 
-void insertNode(struct node **head, struct node *temp) {
+void insertNode(Node **head, Node *node) {
 	if(!(*head)) {
-		*head = *temp;
+		*head = node;
 	} else {
-		int val = temp->timeval;
-		struct node *temp1 = *head;
-		if(temp1->timeval > val) {
-			temp->next = temp1;
-			*head = temp;
-			updateList((*head)->next,val,true);
+		Node *temp = *head;
+		if(temp->timeval > node->timeval) {
+			node->next = temp;
+			*head = node;
+			updateList(node->next,node->timeval,1);
 		} else {
-			struct node *prev = temp1;
-			do{
-				val -= temp1->timeval;
-				temp1 = temp1->next;
-			} while(temp1 && val >= temp1->timeval);
-			while(prev->next != temp1) prev = prev->next;
-			temp->next = prev->next;
+			Node *prev = temp;
+			while(temp && node->timeval > temp->timeval) {
+				node->timeval -= temp->timeval;
+				prev = temp;
+				temp = temp->next;
+			} 
+			node->next = prev->next;
 			prev->next = temp;
-			if(temp) 
-				updateList(temp1, val, true);
+			if(node) 
+				updateList(node->next, node->timeval, 1);
 		}
 	}
 }
 
-//delete a node
-bool deleteNode(struct node **head,int key) {
+// delete timer node
+int deleteNode(Node **head,int key) {
 	if(!(*head)) {
-		return false;
+		return 0;
 	} else {
-		struct node *temp = *head;
-		if((*temp)->key == key) {
+		Node *temp = *head;
+		if(temp->key == key) {
 			*head = (*head)->next;
-			updateList(*head,temp->timeval,false);
-			free(temp);
+			updateList(*head,temp->timeval,0);
 		} else {
-			struct node *temp1 = *head;
+			Node *temp1 = *head;
 			while(temp && temp->key != key) {
 				temp = temp->next;
 			}
@@ -76,13 +81,47 @@ bool deleteNode(struct node **head,int key) {
 			}
 			temp1->next = temp->next;
 			temp->next = NULL;
-			updateList(temp1->next,temp->timeval,false);
-			free(temp);
+			updateList(temp1->next,temp->timeval,0);
 		}
+		free(temp);
 	}
 }
 
+/* Printing out linked list */
+void printList(Node **head) {
+	Node *t = *head;
+	while (t) {
+		printf("Key->%d Time->%lf\n", t->key,t->timeval);
+		t = t->next;
+	}
+}
+
+/* Creating new node */
+Node* getNode(int key,double timeval) {
+	Node* newNode = (Node*)malloc(sizeof(Node));
+	newNode->key = key;
+	newNode->timeval = timeval;
+	newNode->next = NULL;
+	return newNode;
+}
+
+
 // main function to test calls
-void main() {
-	
+int main(int argc,const char *argv[]) { 
+	// testing 
+	Node *head = NULL; 
+
+	// insert call
+	int key = 1;
+	double timeval = 10.4;
+	insertNode(&head,getNode(key,timeval));
+
+	//printList(&head);
+
+	key = 1;
+	timeval = 7.4;
+	insertNode(&head,getNode(key,timeval));
+
+	printList(&head);
+	return 0;
 }

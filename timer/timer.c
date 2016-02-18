@@ -123,5 +123,49 @@ int main(int argc,const char *argv[]) {
 	insertNode(&head,getNode(key,timeval));
 
 	printList(&head);
+
+	// starting server
+	int sock;
+	int msgsock;
+	struct sockaddr_in sin_addr;
+
+	if(argc<2) {
+      printf("usage: %s <local-port> \n",argv[0]);
+      exit(1);
+  	}   
+
+  	 /* reading port */
+  	int port = atoi(argv[1]);
+
+  	printf("TCP server waiting for remote connection from clients ...\n");
+
+  	if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+  		perror("error opening tcp socket");
+  		exit(1);
+  	}
+
+  	/* construct name of socket to send to */
+  	sin_addr.sin_family = AF_INET;
+  	sin_addr.sin_addr.s_addr = INADDR_ANY;
+  	sin_addr.sin_port = htons(port);
+
+  	/* bind socket name to socket */
+  	if(bind(sock, (struct sockaddr *)&sin_addr, sizeof(struct sockaddr_in)) < 0) {
+    	perror("error binding stream socket");
+    	exit(1);
+  	}
+
+  	/* accept a (1) connection in socket msgsocket */ 
+  	if((msgsock = accept(sock, (struct sockaddr *)NULL, (int *)NULL)) == -1) { 
+    	perror("error connecting stream socket");
+    	exit(1);
+  	}	 
+
+  	/* first read "hello" from the client */
+  	if(recv(msgsock, &network_byte_order, sizeof(uint32_t), MSG_WAITALL) < 0){
+    	perror("error reading on stream socket: error on reading file size");
+    	exit(1);
+  	}
+
 	return 0;
 }

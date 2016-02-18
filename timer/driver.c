@@ -5,18 +5,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-voif starttimer() {
+/*
+void starttimer() {
 
 }
 
 canceltimer() {
 
-}
+} */
 
 int main(int argc,const char *argv[]) {
 
-	int socket;
+	int sock;
 	struct sockaddr_in timer_add;
+	struct hostent *hp;
 
 	if (argc!=3){
         printf("Usage: %s <remote-IP> <remote-port> \n",argv[0]);
@@ -24,7 +26,7 @@ int main(int argc,const char *argv[]) {
     }
 
     if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-    	perror("error openting datagram socket");
+    	perror("error opening tcp socket");
     	exit(1);
     }
 
@@ -37,24 +39,24 @@ int main(int argc,const char *argv[]) {
   	/* reading port argument */
   	int port = atoi(argv[2]);
 
-  	bcopy((void *)hp->h_addr, (void *)&sin_addr.sin_addr, hp->h_length);
-  	sin_addr.sin_family = AF_INET;
-   	sin_addr.sin_port = htons(port); /* fixed by adding htons() */
+  	bcopy((void *)hp->h_addr, (void *)&timer_add.sin_addr, hp->h_length);
+  	timer_add.sin_family = AF_INET;
+   	timer_add.sin_port = htons(port); /* fixed by adding htons() */
 
    	/* establish connection with timer */
-  	if(connect(sock, (struct sockaddr *)&sin_addr, sizeof(struct sockaddr_in)) < 0) {
+  	if(connect(sock, (struct sockaddr *)&timer_add, sizeof(struct sockaddr_in)) < 0) {
 	    close(sock);
 	    perror("error connecting stream socket");
 	    exit(1);
   	}
 
+  	char msg[30] = "Sending timer informations...";
+
   	/* first send file size */
-  	if(write(sock, &network_byte_order, sizeof(uint32_t)) < 0) {
-    	perror("error writing on stream socket: error on sending file size");
+  	if(write(sock, msg, sizeof(char) * 30) < 0) {
+    	perror("error writing on stream socket: error on sending packet");
     	exit(1);
    	}
-
-
 
 	return 0;
 }

@@ -1,3 +1,7 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -127,7 +131,9 @@ int main(int argc,const char *argv[]) {
 	// starting server
 	int sock;
 	int msgsock;
-	struct sockaddr_in sin_addr;
+	struct sockaddr_in timer_add;
+
+	char *msg;
 
 	if(argc<2) {
       printf("usage: %s <local-port> \n",argv[0]);
@@ -145,15 +151,17 @@ int main(int argc,const char *argv[]) {
   	}
 
   	/* construct name of socket to send to */
-  	sin_addr.sin_family = AF_INET;
-  	sin_addr.sin_addr.s_addr = INADDR_ANY;
-  	sin_addr.sin_port = htons(port);
+  	timer_add.sin_family = AF_INET;
+  	timer_add.sin_addr.s_addr = INADDR_ANY;
+  	timer_add.sin_port = htons(port);
 
   	/* bind socket name to socket */
-  	if(bind(sock, (struct sockaddr *)&sin_addr, sizeof(struct sockaddr_in)) < 0) {
+  	if(bind(sock, (struct sockaddr *)&timer_add, sizeof(struct sockaddr_in)) < 0) {
     	perror("error binding stream socket");
     	exit(1);
   	}
+
+  	listen(sock, 5);
 
   	/* accept a (1) connection in socket msgsocket */ 
   	if((msgsock = accept(sock, (struct sockaddr *)NULL, (int *)NULL)) == -1) { 
@@ -161,11 +169,14 @@ int main(int argc,const char *argv[]) {
     	exit(1);
   	}	 
 
+  	msg = (char*)malloc(30);
   	/* first read "hello" from the client */
-  	if(recv(msgsock, &network_byte_order, sizeof(uint32_t), MSG_WAITALL) < 0){
+  	if(recv(msgsock, msg, 30, MSG_WAITALL) < 0){
     	perror("error reading on stream socket: error on reading file size");
     	exit(1);
   	}
+
+  	printf("%s\n", msg);
 
 	return 0;
 }

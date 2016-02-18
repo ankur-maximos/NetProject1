@@ -6,7 +6,7 @@ OBJSRV = server.c
 OBJTCPD = tcpd.c
 CFLAGS = 
 # setup for system
-LIBS =
+LIBS = 
 
 all: ftpc ftps tcpd
 

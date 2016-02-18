@@ -12,11 +12,13 @@
 #include <strings.h>
 #include <stdlib.h>
 #include "lib.h"
+#include "crc.h"
 
 #define MAX_BUF_SIZE 10000
 
 main(int argc, char const *argv[])
 {
+	int crc;
 	char oneByte;									//Packet format accepted by troll
 	Packet packet;
 	char buffer[MAX_BUF_SIZE];
@@ -94,10 +96,12 @@ main(int argc, char const *argv[])
 				//ftpc send us a message
 				
 				rec -= ( sizeof(packet.packetType) + sizeof(packet.header) + sizeof(packet.tcpHeader));
-				printf("Received data, adding data to index --> %d\n",rec);
+				printf("Received packet no--> %d\n",count);
 				
 				//forwarding the message to troll
 				packet.packetType = (char)3;
+				crc = gen_crc(packet.body, MSS);
+				packet.tcpHeader.checksum = crc;
 				s = sendto(troll_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&troll, sizeof(troll));
 				if (s < 0)
 		        {
@@ -117,7 +121,6 @@ main(int argc, char const *argv[])
 				printf("Sending all packets to the server...\n");
 
 				//Counter to count number of datagrams forwarded
-				int count = 0;
 				break;
 			
 			case 3:
@@ -127,19 +130,22 @@ main(int argc, char const *argv[])
 				////Sending to ftps
 				server_addr.sin_family = AF_INET;
 				server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");	
-				printf("%d\n", server_addr.sin_family);
+				
+				//check crc
+				if(test_crc(packet.body, MSS, packet.tcpHeader.checksum)){
+					printf("Received and sent --> %d\n",count-1);
+				}
+				else{
+					printf("Received and sent --> %d (garbled)\n",count-1);
+				}
 				s = sendto(server_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
 		        if (s < 0)
 		        {
 		            perror("Error sending datagram");
 		            exit(1);
-		        }
-
-		        printf("Received and sent --> %d\n",count);
+		        } 
 			}
-
-        
         //Incrementing counter
         count++;
 

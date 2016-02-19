@@ -91,7 +91,7 @@ void insertNode(Node **head, Node *node) {
 			updateList(head,node->next,node->time_val,1);
 		} else {
 			Node *prev = temp;
-			while(temp && node->time_val > temp->time_val) {
+			while(temp && node->time_val >= temp->time_val) {
 				node->time_val -= temp->time_val;
 				prev = temp;
 				temp = temp->next;
@@ -105,14 +105,20 @@ void insertNode(Node **head, Node *node) {
 }
 
 
-
 /* Printing out linked list */
 void printList(Node **head) {
+	printf("-------------------------------\n");
+	printf("Printing Timer list :\n");
 	Node *t = *head;
+	if(!t) {
+		printf("Timer list is empty\n");
+	}
 	while (t) {
 		printf("Key->%d Time->%lf\n", t->key,t->time_val);
 		t = t->next;
 	}
+	printf("-------------------------------\n");
+	printf("\n");
 }
 
 /* Creating new node */
@@ -215,7 +221,7 @@ int main(int argc,const char *argv[]) {
   			exit(4);
   		}
         			
-	  	elapsedTime = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000/1000;
+	  	elapsedTime = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000/1000);
 	  	printf("Elapsed Time by select function : %lf \n", elapsedTime);
 	  	fflush(stdout);
 	  	updateList(&head,head,elapsedTime,1);
@@ -223,8 +229,7 @@ int main(int argc,const char *argv[]) {
   		if(temp == 0) {
   			//timeout
   			if(!head) {
-  				printf("Timer list is empty\n");
-  				exit(2);
+  				printf("Timer list is empty...\n");
   			}
   		} else {
   			//new request came
@@ -278,10 +283,9 @@ int main(int argc,const char *argv[]) {
 	  				tv->tv_usec = (long)usec;
 	  		}
 	        } else {
-	            printf("Linked list is empty..exiting\n");
-	            exit(3);
+	            printf("Linked list is empty..\n");
 	        }
-	        printf("Packet executed on timer list.. moving to next packet\n");
+	        printf("Packet executed on timer list.. moving to  packet\n");
   	}
 	close(msgsock);
 	Node* temp = head;

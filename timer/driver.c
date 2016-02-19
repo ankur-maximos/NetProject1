@@ -93,7 +93,5 @@ sleep(5);
 starttimer(18.0,5);
 canceltimer(4);
 canceltimer(8);
-
-
 	return 0;
 }

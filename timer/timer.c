@@ -30,41 +30,22 @@ int searchNode (Node **head, int key) {
 }
 
 // update list
-void updateList(Node *temp, double val,int flag) {
-	while(temp && flag==1) {
-		if(temp->time_val >= val)
+void updateList(Node**head, Node *temp, double val,int flag) {
+	Node* nextnode;
+	// deduct time spent in waiting 
+	while(temp && flag == 1) {
+		if(temp->time_val > val) {
 			temp->time_val -= val;
-		else break;
-		temp = temp->next;
-	}
-	while(temp && flag==0) {
-		temp->time_val += val;
-		temp = temp->next;
-	}
-}
-
-// insert into node 
-void insertNode(Node **head, Node *node) {
-	if(!(*head)) {
-		*head = node;
-	} else {
-		Node *temp = *head;
-		if(temp->time_val > node->time_val) {
-			node->next = temp;
-			*head = node;
-			updateList(node->next,node->time_val,1);
+			break;
 		} else {
-			Node *prev = temp;
-			while(temp && node->time_val > temp->time_val) {
-				node->time_val -= temp->time_val;
-				prev = temp;
-				temp = temp->next;
-			} 
-			node->next = prev->next;
-			prev->next = temp;
-			if(node) 
-				updateList(node->next, node->time_val, 1);
+			val -= temp->time_val;
+			nextnode = temp->next;
+			deleteNode(head,temp->key);
 		}
+		temp = nextnode;
+	}
+	if(temp && flag==0) {
+		temp->time_val += val;
 	}
 }
 
@@ -76,7 +57,7 @@ int deleteNode(Node **head,int key) {
 		Node *temp = *head;
 		if(temp->key == key) {
 			*head = (*head)->next;
-			updateList(*head,temp->time_val,0);
+			updateList(head,*head,temp->time_val,0);
 		} else {
 			Node *temp1 = *head;
 			while(temp && temp->key != key) {
@@ -87,18 +68,48 @@ int deleteNode(Node **head,int key) {
 			}
 			temp1->next = temp->next;
 			temp->next = NULL;
-			updateList(temp1->next,temp->time_val,0);
+			updateList(head,temp1->next,temp->time_val,0);
 		}
 		free(temp);
 	}
 }
 
+
+// insert into node 
+void insertNode(Node **head, Node *node) {
+	if(!(*head)) {
+		*head = node;
+	} else {
+		Node *temp = *head;
+		if(temp->time_val > node->time_val) {
+			node->next = temp;
+			*head = node;
+			updateList(head,node->next,node->time_val,1);
+		} else {
+			Node *prev = temp;
+			while(temp && node->time_val > temp->time_val) {
+				node->time_val -= temp->time_val;
+				prev = temp;
+				temp = temp->next;
+			} 
+			node->next = prev->next;
+			prev->next = node;
+			if(temp) 
+				updateList(head, temp, node->time_val, 1);
+		}
+	}
+}
+
+
+
 /* Printing out linked list */
 void printList(Node **head) {
 	Node *t = *head;
+	int count = 0;
 	while (t) {
 		printf("Key->%d Time->%lf\n", t->key,t->time_val);
 		t = t->next;
+		if(count++ >10) break;
 	}
 }
 
@@ -189,6 +200,9 @@ int main(int argc,const char *argv[]) {
   	FD_SET(msgsock,&readSockets);
 
   	for(;;) {
+  		printf("timer list :\n");
+  		printList(&head);
+  		printf("\n");
   		gettimeofday(&t1,NULL);
   		int temp = select(msgsock+1,&readSockets,NULL,NULL,tv);
   		gettimeofday(&t2,NULL);
@@ -217,6 +231,7 @@ int main(int argc,const char *argv[]) {
 
   			printf("received key->%d timeval->%lf\n",node->key,node->time_val);
   			int found = searchNode(&head,node->key);
+  			printf("searched for key %d\n", found);
   			if(node->time_val == 0.0) {
   				//cancel timer
   				if(found == 0) {
@@ -226,13 +241,18 @@ int main(int argc,const char *argv[]) {
   				}
   			} else {
   				//insert timer
-  				if(found == 0) { 			
-  					elapsedTime = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000/1000;
-  					updateList(head,elapsedTime,1);
+  				if(found == 0) {
+  					if(tv) { 			
+	  					elapsedTime = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000/1000;
+	  					printf("elapsedTime %lf \n", elapsedTime);
+	  					updateList(head,head,elapsedTime,1);
+  					}
+  					fflush(stdout);
   					insertNode(&head,node);
   					// updating timeout value
-  					int sec = (int)node->time_val;
-  					double usec = (node->time_val - (double)sec) * 1000 * 1000;
+  					int sec = (int)head->time_val;
+  					double usec = (head->time_val - (double)sec) * 1000 * 1000;
+  					printf("setting timeout value sec %ld usec %lf\n", sec,usec);
   					if(tv) {
   						tv->tv_sec = (long)sec;
   						tv->tv_usec = (long)usec;

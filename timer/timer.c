@@ -35,20 +35,18 @@ void updateList(Node**head, Node *temp, double val,int flag) {
     if(flag == 0) {
         printf("Adding node time by %lf\n",val);
     } else {
-        printf("Subtracting node time by %lf",val);
+        printf("Subtracting time by %lf \n",val);
     }
 	// deduct time spent in waiting 
 	while(temp && flag == 1) {
 		if(temp->time_val > val) {
-            
 			temp->time_val -= val;
 			break;
 		} else {
 			val -= temp->time_val;
-			nextnode = temp->next;
-			deleteNode(head,temp->key);
+			temp->time_val = 0;
+			temp = temp->next;
 		}
-		temp = nextnode;
 	}
 	if(temp && flag==0) {
 		temp->time_val += val;
@@ -73,15 +71,15 @@ int deleteNode(Node **head,int key) {
 				temp1 = temp1->next;
 			}
 			temp1->next = temp->next;
-			temp->next = NULL;
 			updateList(head,temp1->next,temp->time_val,0);
 		}
+		temp->next = NULL;
 		free(temp);
 	}
 }
 
 
-// insert into node 
+/* insert new timer node into list */
 void insertNode(Node **head, Node *node) {
 	if(!(*head)) {
 		*head = node;
@@ -111,11 +109,9 @@ void insertNode(Node **head, Node *node) {
 /* Printing out linked list */
 void printList(Node **head) {
 	Node *t = *head;
-	int count = 0;
 	while (t) {
 		printf("Key->%d Time->%lf\n", t->key,t->time_val);
 		t = t->next;
-		if(count++ >10) break;
 	}
 }
 
@@ -203,12 +199,14 @@ int main(int argc,const char *argv[]) {
 
   	printf("%s\n", msg);
 
-  	FD_SET(msgsock,&readSockets);
+  	
     int i=0;
-  	for(i=0;i<12;i++) {
-  		printf("timer list :\n");
+  	for(;;) {
+  		printf("\nTimer Request: \n");
   		printList(&head);
-  		printf("\n");
+  		/* computing time taken to complete select function */
+  		FD_ZERO(&readSockets);
+  		FD_SET(msgsock,&readSockets);
   		gettimeofday(&t1,NULL);
   		int temp = select(msgsock+1,&readSockets,NULL,NULL,tv);
   		gettimeofday(&t2,NULL);
@@ -217,9 +215,10 @@ int main(int argc,const char *argv[]) {
   			exit(4);
   		}
         			
-	  		elapsedTime = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000/1000;
-	  		printf("elapsedTime %lf \n", elapsedTime);
-	  		updateList(&head,head,elapsedTime,1);
+	  	elapsedTime = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000/1000;
+	  	printf("Elapsed Time by select function : %lf \n", elapsedTime);
+	  	fflush(stdout);
+	  	updateList(&head,head,elapsedTime,1);
   		
   		if(temp == 0) {
   			//timeout
@@ -230,51 +229,70 @@ int main(int argc,const char *argv[]) {
   		} else {
   			//new request came
   			Node* node = (Node*)malloc(sizeof(Node));
-  			if(recv(msgsock, node, sizeof(Node), MSG_WAITALL) < 0){
+  			int rec = recv(msgsock, node, sizeof(Node), MSG_WAITALL);
+  			if(rec < 0){
     			perror("error reading on stream socket: error on reading file size");
     			exit(1);
   			}
-
-  			printf("received key->%d timeval->%lf\n",node->key,node->time_val);
-  			int found = searchNode(&head,node->key);
-  			printf("searched for key %d\n", found);
-  			if(node->time_val == 0.0) {
-  				//cancel timer
-  				if(found == 0) {
-					printf("Key not found \n");					
-  				} else {
-  					deleteNode(&head,node->key);
-  				}
+  			if(rec == 0) {
+  				break;
   			} else {
-  				//insert timer
-  				if(found == 0) {
-  					
-  					fflush(stdout);
-  					insertNode(&head,node);
-  					// updating timeout value
-  					
-  				} else {
-  					printf("duplicate key..Cannot be added\n");
-  				}
-  			}
+  				printf("Received key->%d timeval->%lf\n",node->key,node->time_val);
+	  			int found = searchNode(&head,node->key);
+	  			printf("searched for key -> %d\n", found);
+	  			if(node->time_val == 0.0) {
+	  				//cancel timer
+	  				if(found == 0) {
+						printf("Key not found \n");					
+	  				} else {
+	  					deleteNode(&head,node->key);
+	  				}
+	  			} else {
+	  				//insert timer
+	  				if(found == 0) {
+	  					
+	  					fflush(stdout);
+	  					// insert node
+	  					insertNode(&head,node);
+	  					// updating timeout value
+	  					
+	  				} else {
+	  					printf("duplicate key..Cannot be added\n");
+	  				}
+	  			}
+  			} 
   		}
-        if(head) {
-        int sec = (int)head->time_val;
-  		double usec = (head->time_val - (double)sec) * 1000 * 1000;
-  		printf("setting timeout value sec %ld usec %lf\n", sec,usec);
-  		if(tv) {
-  				tv->tv_sec = (long)sec;
-  				tv->tv_usec = (long)usec;
-  		} else {
-  				tv = (struct timeval*)malloc(sizeof(struct timeval));
-  				tv->tv_sec = (long)sec;
-  				tv->tv_usec = (long)usec;
-  		}
-        } else {
-            printf("Linked list is empty..exiting\n");
-            exit(3);
+  		while(head && head->time_val == 0.0) {
+        	deleteNode(&head,head->key);
         }
+        if(head) {
+	        int sec = (int)head->time_val;
+	  		double usec = (head->time_val - (double)sec) * 1000 * 1000;
+	  		printf("Setting timeout value for next select sec %ld usec %lf\n", sec,usec);
+	  		if(tv) {
+	  				tv->tv_sec = (long)sec;
+	  				tv->tv_usec = (long)usec;
+	  		} else {
+	  				tv = (struct timeval*)malloc(sizeof(struct timeval));
+	  				tv->tv_sec = (long)sec;
+	  				tv->tv_usec = (long)usec;
+	  		}
+	        } else {
+	            printf("Linked list is empty..exiting\n");
+	            exit(3);
+	        }
+	        printf("Packet executed on timer list.. moving to next packet\n");
   	}
-
+	close(msgsock);
+	Node* temp = head;
+	while(temp) {
+		double secs = head->time_val;
+		printf("Sleeping for %lf sec\n", secs);
+		usleep((useconds_t)secs*1000*1000);
+		printList(&temp);
+		head = head->next;
+		free(temp);
+		temp = head;
+	}
 	return 0;
 }

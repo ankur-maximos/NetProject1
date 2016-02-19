@@ -83,17 +83,16 @@ int main(int argc,const char *argv[]) {
     	perror("error writing on stream socket: error on sending packet");
     	exit(1);
    	}
-   	sleep(5);
-   	starttimer(20.0,1);
-	starttimer(10.0,2);
-	starttimer(30.0,3);
-	sleep(5);
-	canceltimer(2);
-	starttimer(20.0,4);
-	sleep(5);
-	starttimer(18.0,5);
-	canceltimer(4);
-	canceltimer(8);
+starttimer(20.0,1);
+starttimer(10.0,2);
+starttimer(30.0,3);
+sleep(5);
+canceltimer(2);
+starttimer(20.0,4);
+sleep(5);
+starttimer(18.0,5);
+canceltimer(4);
+canceltimer(8);
 
 
 	return 0;

@@ -23,7 +23,8 @@ int searchNode (Node **head, int key) {
 		if(temp->key == key) {
 			flag = 1;
 			break;
-		}		
+		}
+		temp = temp->next;		
 	}
 	return flag;
 }
@@ -117,7 +118,7 @@ int main(int argc,const char *argv[]) {
 	Node *head = NULL; 
 
 	// insert call
-	int key = 1;
+	/*int key = 1;
 	double timeval = 10.4;
 	insertNode(&head,getNode(key,timeval));
 
@@ -127,7 +128,7 @@ int main(int argc,const char *argv[]) {
 	timeval = 7.4;
 	insertNode(&head,getNode(key,timeval));
 
-	printList(&head);
+	printList(&head); */
 
 	// starting server
 	int sock;				// host listening socket

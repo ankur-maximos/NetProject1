@@ -9,7 +9,7 @@
 // Timer node structure
 struct node {
 	int key;
-	double timeval;
+	double time_val;
 	struct node *next;
 };
 
@@ -31,13 +31,13 @@ int searchNode (Node **head, int key) {
 // update list
 void updateList(Node *temp, double val,int flag) {
 	while(temp && flag==1) {
-		if(temp->timeval >= val)
-			temp->timeval -= val;
+		if(temp->time_val >= val)
+			temp->time_val -= val;
 		else break;
 		temp = temp->next;
 	}
 	while(temp && flag==0) {
-		temp->timeval += val;
+		temp->time_val += val;
 		temp = temp->next;
 	}
 }
@@ -48,21 +48,21 @@ void insertNode(Node **head, Node *node) {
 		*head = node;
 	} else {
 		Node *temp = *head;
-		if(temp->timeval > node->timeval) {
+		if(temp->time_val > node->time_val) {
 			node->next = temp;
 			*head = node;
-			updateList(node->next,node->timeval,1);
+			updateList(node->next,node->time_val,1);
 		} else {
 			Node *prev = temp;
-			while(temp && node->timeval > temp->timeval) {
-				node->timeval -= temp->timeval;
+			while(temp && node->time_val > temp->time_val) {
+				node->time_val -= temp->time_val;
 				prev = temp;
 				temp = temp->next;
 			} 
 			node->next = prev->next;
 			prev->next = temp;
 			if(node) 
-				updateList(node->next, node->timeval, 1);
+				updateList(node->next, node->time_val, 1);
 		}
 	}
 }
@@ -75,7 +75,7 @@ int deleteNode(Node **head,int key) {
 		Node *temp = *head;
 		if(temp->key == key) {
 			*head = (*head)->next;
-			updateList(*head,temp->timeval,0);
+			updateList(*head,temp->time_val,0);
 		} else {
 			Node *temp1 = *head;
 			while(temp && temp->key != key) {
@@ -86,7 +86,7 @@ int deleteNode(Node **head,int key) {
 			}
 			temp1->next = temp->next;
 			temp->next = NULL;
-			updateList(temp1->next,temp->timeval,0);
+			updateList(temp1->next,temp->time_val,0);
 		}
 		free(temp);
 	}
@@ -96,7 +96,7 @@ int deleteNode(Node **head,int key) {
 void printList(Node **head) {
 	Node *t = *head;
 	while (t) {
-		printf("Key->%d Time->%lf\n", t->key,t->timeval);
+		printf("Key->%d Time->%lf\n", t->key,t->time_val);
 		t = t->next;
 	}
 }
@@ -105,7 +105,7 @@ void printList(Node **head) {
 Node* getNode(int key,double timeval) {
 	Node* newNode = (Node*)malloc(sizeof(Node));
 	newNode->key = key;
-	newNode->timeval = timeval;
+	newNode->time_val = timeval;
 	newNode->next = NULL;
 	return newNode;
 }
@@ -134,6 +134,9 @@ int main(int argc,const char *argv[]) {
 	int msgsock;			// 
 	struct sockaddr_in timer_add;
 	struct timeval *tv = NULL;
+	struct timeval t1;
+	struct timeval t2;
+	double elapsedTime;
 	fd_set readSockets;
 	FD_ZERO(&readSockets);
 
@@ -185,8 +188,9 @@ int main(int argc,const char *argv[]) {
   	FD_SET(msgsock,&readSockets);
 
   	for(;;) {
-
+  		gettimeofday(&t1,NULL);
   		int temp = select(msgsock+1,&readSockets,NULL,NULL,tv);
+  		gettimeofday(&t2,NULL);
   		if(temp == -1) {
   			perror("select");
   			exit(4);
@@ -205,14 +209,14 @@ int main(int argc,const char *argv[]) {
   		} else {
   			//new request came
   			Node* node = (Node*)malloc(sizeof(Node));
-  			if(recv(msgsock, msg, sizeof(Node), MSG_WAITALL) < 0){
+  			if(recv(msgsock, node, sizeof(Node), MSG_WAITALL) < 0){
     			perror("error reading on stream socket: error on reading file size");
     			exit(1);
   			}
 
-  			printf("received key->%d timeval->%lf\n",node->key,node->timeval);
+  			printf("received key->%d timeval->%lf\n",node->key,node->time_val);
   			int found = searchNode(&head,node->key);
-  			if(node->timeval == 0.0) {
+  			if(node->time_val == 0.0) {
   				//cancel timer
   				if(found == 0) {
 					printf("Key not found \n");					
@@ -222,22 +226,25 @@ int main(int argc,const char *argv[]) {
   			} else {
   				//insert timer
   				if(found == 0) { 			
+  					elapsedTime = (t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec)/1000/1000;
+  					updateList(head,elapsedTime,1);
   					insertNode(&head,node);
   					// updating timeout value
-  					long msec = (long)node->timeval;
-  					double usec = ((int)msec - node->timeval) * 1000;
+  					int sec = (int)node->time_val;
+  					double usec = (node->time_val - (double)sec) * 1000 * 1000;
   					if(tv) {
-  						tv->tv_sec = (long)msec * 1000;
+  						tv->tv_sec = (long)sec;
   						tv->tv_usec = (long)usec;
   					} else {
-
+  						tv = (struct timeval*)malloc(sizeof(struct timeval));
+  						tv->tv_sec = (long)sec;
+  						tv->tv_usec = (long)usec;
   					}
   				} else {
   					printf("duplicate key..Cannot be added\n");
   				}
   			}
   		}
-
   	}
 
 	return 0;

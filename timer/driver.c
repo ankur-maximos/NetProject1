@@ -46,8 +46,6 @@ void canceltimer(int key) {
 
 int main(int argc,const char *argv[]) {
 
-	
-
 	if (argc!=3){
         printf("Usage: %s <remote-IP> <remote-port> \n",argv[0]);
         exit(1);
@@ -85,6 +83,8 @@ int main(int argc,const char *argv[]) {
     	perror("error writing on stream socket: error on sending packet");
     	exit(1);
    	}
+
+
 
 	return 0;
 }

@@ -5,20 +5,48 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*
-void starttimer() {
+int sock;
+struct sockaddr_in timer_add;
+struct hostent *hp;
 
+
+struct node {
+	int key;
+	double timeval;
+	struct node *next;
+};
+
+typedef struct node Node;
+
+
+void starttimer(double timeval, int key) {
+
+	Node *packet  = (Node*)malloc(sizeof(Node));
+	packet->key = key;
+	packet->timeval = timeval;
+	packet->next = NULL;
+
+	if(write(sock, packet, sizeof(Node)) < 0) {
+    	perror("error writing on stream socket: error on sending packet");
+    	exit(1);
+   	}
 }
 
-canceltimer() {
+void canceltimer(int key) {
+	Node *packet  = (Node*)malloc(sizeof(Node));
+	packet->key = key;
+	packet->timeval = 0.0;
+	packet->next = NULL;
 
-} */
+	if(write(sock, packet, sizeof(Node)) < 0) {
+    	perror("error writing on stream socket: error on sending packet");
+    	exit(1);
+   	}
+} 
 
 int main(int argc,const char *argv[]) {
 
-	int sock;
-	struct sockaddr_in timer_add;
-	struct hostent *hp;
+	
 
 	if (argc!=3){
         printf("Usage: %s <remote-IP> <remote-port> \n",argv[0]);

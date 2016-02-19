@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -129,9 +130,12 @@ int main(int argc,const char *argv[]) {
 	printList(&head);
 
 	// starting server
-	int sock;
-	int msgsock;
+	int sock;				// host listening socket
+	int msgsock;			// 
 	struct sockaddr_in timer_add;
+	struct timeval *tv = NULL;
+	fd_set readSockets;
+	FD_ZERO(&readSockets);
 
 	char *msg;
 
@@ -177,6 +181,64 @@ int main(int argc,const char *argv[]) {
   	}
 
   	printf("%s\n", msg);
+
+  	FD_SET(msgsock,&readSockets);
+
+  	for(;;) {
+
+  		int temp = select(msgsock+1,&readSockets,NULL,NULL,tv);
+  		if(temp == -1) {
+  			perror("select");
+  			exit(4);
+  		}
+
+  		if(temp == 0) {
+  			//timeout
+  			if(!head) {
+  				printf("Timer list is empty\n");
+  				exit(2);
+  			} else {
+  				Node *temp = head;
+  				head = head->next;
+  				free(temp);
+  			}
+  		} else {
+  			//new request came
+  			Node* node = (Node*)malloc(sizeof(Node));
+  			if(recv(msgsock, msg, sizeof(Node), MSG_WAITALL) < 0){
+    			perror("error reading on stream socket: error on reading file size");
+    			exit(1);
+  			}
+
+  			printf("received key->%d timeval->%lf\n",node->key,node->timeval);
+  			int found = searchNode(&head,node->key);
+  			if(node->timeval == 0.0) {
+  				//cancel timer
+  				if(found == 0) {
+					printf("Key not found \n");					
+  				} else {
+  					deleteNode(&head,node->key);
+  				}
+  			} else {
+  				//insert timer
+  				if(found == 0) { 			
+  					insertNode(&head,node);
+  					// updating timeout value
+  					long msec = (long)node->timeval;
+  					double usec = ((int)msec - node->timeval) * 1000;
+  					if(tv) {
+  						tv->tv_sec = (long)msec * 1000;
+  						tv->tv_usec = (long)usec;
+  					} else {
+
+  					}
+  				} else {
+  					printf("duplicate key..Cannot be added\n");
+  				}
+  			}
+  		}
+
+  	}
 
 	return 0;
 }

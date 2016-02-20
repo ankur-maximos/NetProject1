@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 500
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -221,7 +222,7 @@ int main(int argc,const char *argv[]) {
   			exit(4);
   		}
         			
-	  	elapsedTime = (t2.tv_sec - t1.tv_sec) + ((t2.tv_usec - t1.tv_usec)/1000/1000);
+	  	elapsedTime = (t2.tv_sec - t1.tv_sec) + ((double)((double)t2.tv_usec - (double)t1.tv_usec)/1000.0/1000.0);
 	  	printf("Elapsed Time by select function : %lf \n", elapsedTime);
 	  	fflush(stdout);
 	  	updateList(&head,head,elapsedTime,1);
@@ -272,7 +273,7 @@ int main(int argc,const char *argv[]) {
         }
         if(head) {
 	        int sec = (int)head->time_val;
-	  		double usec = (head->time_val - (double)sec) * 1000 * 1000;
+	  		double usec = ((double)head->time_val - (int)sec) * 1000 * 1000;
 	  		printf("Setting timeout value for next select sec %ld usec %lf\n", sec,usec);
 	  		if(tv) {
 	  				tv->tv_sec = (long)sec;

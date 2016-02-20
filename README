@@ -1,0 +1,27 @@
+# Checksum
+Performing Checksum to verify the packet arriving on the server side
+1.Description of all files in this directory
+
+a. troll - executable troll file.It takes data packets from client_tcpd file to server_tcpd file.
+b. client.c - This is the client file.This file sends data packets which is received by tcpd file. It sends file size,file name and file contents in separate SEND() function calls to tcpd_client file. client.c sends a packet of type 1.
+c.tcpd.c - This file takes data packets from client and send them to troll, it is also used on the server side for receiving packets from troll to be sent to the ftps server. This file handles various communications by accessing the packettype header to distinguish between packets send from different sources. 
+     packettype 1 -> packet coming from ftpc
+     packettype 2 -> packet coming from ftps
+     packettype 3 -> packet coming from the troll
+ tcpd on the client side is also reponsible to generate crc for the packet, and add it in the tcp header.
+ tcpd on the server side is repsonsible for checking the crc of the packet, with the crc generated using all the bytes from the packet's body
+d. server.c - This is the server file and receives packets from server side tcpd .It copies data to output file.
+
+2. Compilation: Use below script,
+make
+
+3. Running :
+ Open 3 processes in one machine(client) and 2 processes in other (server)
+ For server side:
+ 1. Run Script ./tcpd <tcpd_port_num> <troll_port_num>for running tcpd_server file
+ 2. Run Script ./ftps <server-port> <tcpd_port_num> for running server file
+
+ For Client side:
+ 1.Run Troll: Run Script ./troll <troll-port-num> -x0 -s0 -g25 -t
+ 2.Run Script ./tcpd <tcpd_client_port_num> <troll-port-num> to run client tcpd
+ 3.Run Script ./ftpc <server_ip> <tcpd_server_port_num> <file_name> <client_tcpd_port_number>

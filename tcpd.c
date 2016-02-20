@@ -104,10 +104,11 @@ main(int argc, char const *argv[])
 				packet.tcpHeader.checksum = crc;
 				s = sendto(troll_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&troll, sizeof(troll));
 				if (s < 0)
-		        {
-		            perror("Error sending datagram");
-		            exit(1);
-		        }
+				{
+				    perror("Error sending datagram");
+				    exit(1);
+				}
+ 				count++;
 				break;
 			case 2:
 				//ftps send a message
@@ -139,6 +140,7 @@ main(int argc, char const *argv[])
 					printf("Received and sent --> %d (garbled)\n",count-1);
 				}
 				s = sendto(server_sock, &packet, sizeof(packet), 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
+				count++;
 
 		        if (s < 0)
 		        {
@@ -147,7 +149,7 @@ main(int argc, char const *argv[])
 		        } 
 			}
         //Incrementing counter
-        count++;
+       
 
 	}
 
